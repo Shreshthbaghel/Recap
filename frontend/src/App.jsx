@@ -6,15 +6,35 @@ import Dashboard from './pages/Dashboard';
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
+
+const PublicOnlyRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (user) return <Navigate to="/" replace />;
   return children;
 };
 
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <Login />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicOnlyRoute>
+            <Register />
+          </PublicOnlyRoute>
+        }
+      />
       <Route
         path="/"
         element={
@@ -23,6 +43,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

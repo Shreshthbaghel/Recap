@@ -11,35 +11,38 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-  if (!name || !email || !password) {
-    res.status(400).json({ message: 'Please provide all fields' });
-    return;
-  }
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Please provide all fields' });
+    }
 
-  const userExists = await User.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
 
-  if (userExists) {
-    res.status(400).json({ message: 'User already exists' });
-    return;
-  }
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
 
-  const user = await User.create({
-    name,
-    email,
-    password,
-  });
+    if (userExists) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
-  if (user) {
-    res.status(201).json({
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+    });
+
+    return res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       token: generateToken(user._id),
     });
-  } else {
-    res.status(400).json({ message: 'Invalid user data' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error during registration' });
   }
 };
 
@@ -47,23 +50,44 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide email and password' });
+    }
 
-  if (user && (await user.matchPassword(password))) {
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } else {
-    res.status(401).json({ message: 'Invalid email or password' });
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    if (user && (await user.matchPassword(password))) {
+      return res.json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        token: generateToken(user._id),
+      });
+    }
+
+    return res.status(401).json({ message: 'Invalid email or password' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error during login' });
   }
+};
+
+// @desc    Get current user profile
+// @route   GET /api/auth/me
+// @access  Private
+const getMe = async (req, res) => {
+  return res.json({
+    _id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+  });
 };
 
 module.exports = {
   registerUser,
   loginUser,
+  getMe,
 };

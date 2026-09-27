@@ -2,9 +2,20 @@ import { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const useAuth = () => useContext(AuthContext);
+const api = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return ctx;
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -14,37 +25,39 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
-      setUser(JSON.parse(userInfo));
+      try {
+        setUser(JSON.parse(userInfo));
+      } catch {
+        localStorage.removeItem('userInfo');
+      }
     }
     setLoading(false);
   }, []);
 
+  const persistUser = (data) => {
+    setUser(data);
+    localStorage.setItem('userInfo', JSON.stringify(data));
+  };
+
   const login = async (email, password) => {
     try {
-      const { data } = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password,
-      });
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      const { data } = await api.post('/auth/login', { email, password });
+      persistUser(data);
       navigate('/');
+      return data;
     } catch (error) {
-      throw error.response?.data?.message || 'Login failed';
+      throw error.response?.data?.message || 'Login failed. Check your credentials and try again.';
     }
   };
 
   const register = async (name, email, password) => {
     try {
-      const { data } = await axios.post('http://localhost:5000/api/auth/register', {
-        name,
-        email,
-        password,
-      });
-      setUser(data);
-      localStorage.setItem('userInfo', JSON.stringify(data));
+      const { data } = await api.post('/auth/register', { name, email, password });
+      persistUser(data);
       navigate('/');
+      return data;
     } catch (error) {
-      throw error.response?.data?.message || 'Registration failed';
+      throw error.response?.data?.message || 'Registration failed. Please try again.';
     }
   };
 
@@ -56,7 +69,14 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-      {!loading && children}
+      {loading ? (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-bg">
+          <div className="spinner" />
+          <p className="text-ink-faint text-sm">Loading MeetNote…</p>
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 };

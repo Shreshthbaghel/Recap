@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlus } from 'lucide-react';
+import { NotebookPen } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import AuthLayout from '../components/AuthLayout';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -14,84 +15,101 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!name.trim() || !email.trim() || !password) {
+      setError('Please fill in all fields.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await register(name, email, password);
+      await register(name.trim(), email.trim(), password);
     } catch (err) {
-      setError(err);
+      setError(typeof err === 'string' ? err : 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-bg-elevated border border-line rounded-3xl p-8 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-            <UserPlus className="text-bg-elevated w-6 h-6" />
-          </div>
-          <h2 className="text-3xl font-bold text-text-main font-display mb-2">Create Account</h2>
-          <p className="text-muted">Sign up to get started</p>
-        </div>
+    <AuthLayout
+      title="Start with a clean foundation."
+      subtitle="Register once. Your meetings, notes, and AI agents will live here as we ship each phase."
+    >
+      <div className="auth-card page-enter">
+        <p className="eyebrow">Get started</p>
+        <h2>Create account</h2>
+        <p className="lede">It only takes a minute — then you're on the dashboard.</p>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-6">
-            {error}
-          </div>
-        )}
+        {error && <div className="alert-error mb-5">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div>
-            <label className="block text-sm font-medium text-text-main mb-1.5">Name</label>
+            <label className="label" htmlFor="name">
+              Name
+            </label>
             <input
+              id="name"
               type="text"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-bg border border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-              placeholder="John Doe"
+              className="input"
+              placeholder="Ada Lovelace"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-main mb-1.5">Email</label>
+            <label className="label" htmlFor="email">
+              Email
+            </label>
             <input
+              id="email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-bg border border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-              placeholder="you@example.com"
+              className="input"
+              placeholder="you@company.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-text-main mb-1.5">Password</label>
+            <label className="label" htmlFor="password">
+              Password
+            </label>
             <input
+              id="password"
               type="password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-bg border border-line rounded-xl focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
-              placeholder="••••••••"
+              className="input"
+              placeholder="At least 6 characters"
+              minLength={6}
               required
             />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-accent hover:bg-accent-deep text-bg-elevated font-medium py-3 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Creating account...' : 'Create Account'}
+          <button type="submit" disabled={loading} className="btn btn-accent w-full mt-2">
+            {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-muted">
-          Already have an account?{' '}
-          <Link to="/login" className="text-green hover:text-green-soft font-medium transition-colors">
-            Sign in
-          </Link>
+        <p className="auth-footer">
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
+
+        <div className="mt-8 flex items-center gap-2 text-ink-faint text-xs justify-center">
+          <NotebookPen size={14} />
+          <span>Phase 1 — Auth foundation</span>
+        </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 };
 
